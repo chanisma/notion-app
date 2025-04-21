@@ -2,6 +2,7 @@ import axios from 'axios';
 
 export default async function handler(req, res) {
   const code = req.query.code;
+  res.status(200).send("🧠 Auth route OK!");
 
   try {
     const tokenRes = await axios.post('https://api.notion.com/v1/oauth/token', {
