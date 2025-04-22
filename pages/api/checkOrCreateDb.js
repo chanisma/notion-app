@@ -20,6 +20,8 @@ export default async function handler(req, res) {
     const userRes = await axios.get('https://api.notion.com/v1/users/me', { headers })
     const userId = userRes.data.id
 
+    console.log(userId)
+
     // meta DB에서 user_id 검색
     const metaQuery = await axios.post(
       `https://api.notion.com/v1/databases/${META_DB_ID}/query`,
@@ -39,6 +41,7 @@ export default async function handler(req, res) {
     if (metaQuery.data.results.length > 0) {
       // 기존 DB ID 사용
       dbId = metaQuery.data.results[0].properties.DbId.rich_text[0].plain_text
+      console.log(dbId)
     } else {
       // 새 페이지 생성
       const pageRes = await axios.post('https://api.notion.com/v1/pages', {
