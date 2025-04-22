@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     const userId = userRes.data.id
     
     // meta DB에서 user_id 검색
-    const metaQuery = await axios.post(
+    const metaQuery = await axios.post( 
       `https://api.notion.com/v1/databases/${META_DB_ID}/query`,
       {
         filter: {
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       },
       { headers }
     )
-    res.send(metaQuery)
+    res.send('MetaQuery:', metaQuery)
 
     let dbId = null
 
