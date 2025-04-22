@@ -17,11 +17,11 @@ export default async function handler(req, res) {
 
   try {
     // 사용자 정보 조회
-    console.log("try start")
+    res.send("try start")
     const userRes = await axios.get('https://api.notion.com/v1/users/me', { headers })
     const userId = userRes.data.id
 
-    console.log(userId)
+    res.send(userId)
 
     // meta DB에서 user_id 검색
     const metaQuery = await axios.post(
