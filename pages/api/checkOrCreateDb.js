@@ -80,7 +80,7 @@ export default async function handler(req, res) {
         },
         properties: {
           UserId: {
-            rich_text: [{ type: 'text', text: { content: userId } }]
+            rich_text: [{ type: 'title', text: { content: userId } }]
           },
           DbId: {
             rich_text: [{ type: 'text', text: { content: dbId } }]
