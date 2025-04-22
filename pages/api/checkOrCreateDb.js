@@ -38,21 +38,25 @@ export default async function handler(req, res) {
       const userId = userInfo.data.id;
 
       const dbRes = await axios.post('https://api.notion.com/v1/databases', {
-        parent: { type: 'user_id', user_id: userId },
+        parent: {
+            type: 'page_id',
+            page_id: '1db31746bed980648e93c4d8eb346743' // ✅ 여기 너의 Notion 페이지 ID
+        },
         title: [{ type: 'text', text: { content: 'My Vercel Notion DB' } }],
         properties: {
-          Name: { title: {} },
-          Tag: {
+            Name: { title: {} },
+            Tag: {
             multi_select: {
-              options: [
+                options: [
                 { name: 'Work', color: 'blue' },
                 { name: 'Study', color: 'green' }
-              ]
+                ]
             }
-          },
-          Done: { checkbox: {} }
+            },
+            Done: { checkbox: {} }
         }
-      }, { headers });
+     }, { headers });
+
 
       dbId = dbRes.data.id;
       console.log(`✅ 새 DB 생성 완료: ${dbId}`);
