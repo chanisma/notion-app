@@ -19,14 +19,14 @@ export default async function handler(req, res) {
     // 사용자 정보 조회
     const userRes = await axios.get('https://api.notion.com/v1/users/me', { headers })
     const userId = userRes.data.id
-
+    
     // meta DB에서 user_id 검색
     const metaQuery = await axios.post(
       `https://api.notion.com/v1/databases/${META_DB_ID}/query`,
       {
         filter: {
           property: 'UserId',
-          rich_text: {
+          title: {
             equals: userId
           }
         }
