@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       },
       { headers }
     )
-    res.send('MetaQuery:', metaQuery)
+    console.log('MetaQuery:', metaQuery)
 
     let dbId = null
 
