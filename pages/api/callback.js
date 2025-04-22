@@ -19,10 +19,10 @@ export default async function handler(req, res) {
 
     const accessToken = tokenRes.data.access_token;
 
-    // access token을 쿼리로 넘기기 (임시)
+    // ✅ 이 리디렉션이 없으면 화면이 멈춘 것처럼 보여요!
     res.redirect(`/api/checkOrCreateDb?access_token=${accessToken}`);
   } catch (err) {
-    console.error(err.response?.data || err.message);
-    res.status(500).send('OAuth 실패');
+    console.error('OAuth 오류:', err.response?.data || err.message);
+    res.status(500).send('OAuth 인증 실패');
   }
 }
