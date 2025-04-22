@@ -17,7 +17,6 @@ export default async function handler(req, res) {
 
   try {
     // 사용자 정보 조회
-    res.send("try start")
     const userRes = await axios.get('https://api.notion.com/v1/users/me', { headers })
     const userId = userRes.data.id
 
