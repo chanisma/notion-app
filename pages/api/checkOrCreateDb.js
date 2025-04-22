@@ -20,8 +20,6 @@ export default async function handler(req, res) {
     const userRes = await axios.get('https://api.notion.com/v1/users/me', { headers })
     const userId = userRes.data.id
 
-    res.send(userId)
-
     // meta DB에서 user_id 검색
     const metaQuery = await axios.post(
       `https://api.notion.com/v1/databases/${META_DB_ID}/query`,
@@ -35,6 +33,7 @@ export default async function handler(req, res) {
       },
       { headers }
     )
+    res.send(metaQuery)
 
     let dbId = null
 
