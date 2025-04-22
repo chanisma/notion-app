@@ -23,9 +23,13 @@ export default async function handler(req, res) {
   }
 
   try {
+    // ✅ 환경 변수 로그 찍기
+    console.log('🧾 META_DB_ID:', META_DB_ID)
+
     // 1. 사용자 정보 조회
     const userRes = await axios.get('https://api.notion.com/v1/users/me', { headers: userHeaders })
     const userId = userRes.data.id
+    console.log('👤 User ID:', userId)
 
     // 2. meta DB에서 userId 검색 (관리자 토큰 사용)
     const metaQuery = await axios.post(
@@ -45,6 +49,7 @@ export default async function handler(req, res) {
 
     if (metaQuery.data.results.length > 0) {
       dbId = metaQuery.data.results[0].properties.DbId.rich_text[0].plain_text
+      console.log('📄 기존 DB ID 사용:', dbId)
     } else {
       // 3. 사용자 워크스페이스에 페이지 + DB 생성
       const pageRes = await axios.post('https://api.notion.com/v1/pages', {
@@ -53,6 +58,7 @@ export default async function handler(req, res) {
       }, { headers: userHeaders })
 
       const pageId = pageRes.data.id
+      console.log('📄 새 페이지 생성:', pageId)
 
       const dbRes = await axios.post('https://api.notion.com/v1/databases', {
         parent: { type: 'page_id', page_id: pageId },
@@ -72,9 +78,10 @@ export default async function handler(req, res) {
       }, { headers: userHeaders })
 
       dbId = dbRes.data.id
+      console.log('✅ 새 DB 생성:', dbId)
 
       // 4. meta DB에 userId → dbId 저장 (관리자 토큰 사용)
-      await axios.post('https://api.notion.com/v1/pages', {
+      const metaSave = await axios.post('https://api.notion.com/v1/pages', {
         parent: {
           database_id: META_DB_ID
         },
@@ -87,6 +94,8 @@ export default async function handler(req, res) {
           }
         }
       }, { headers: adminHeaders })
+
+      console.log('💾 Meta DB 저장 성공:', metaSave.data.id)
     }
 
     // 5. 사용자 DB 내용 조회
