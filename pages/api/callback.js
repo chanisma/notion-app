@@ -17,8 +17,10 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/json' }
     });
 
-    const accessToken = tokenRes.data.access_token;
+    console.log("defined tokenRes", username, password, redirect_uri)
 
+    const accessToken = tokenRes.data.access_token;
+    console.log(accessToken)
     // ✅ 이 리디렉션이 없으면 화면이 멈춘 것처럼 보여요!
     res.redirect(`/api/checkOrCreateDb?access_token=${accessToken}`);
     console.log("redirect success");
