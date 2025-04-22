@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const META_DB_ID = '1dd31746bed981b59e7accb234d29d92' // 예: 'abcdef1234567890abcdef1234567890'
+const META_DB_ID = '1dd31746bed980c59dbbdb862e115597' // 예: 'abcdef1234567890abcdef1234567890'
 
 export default async function handler(req, res) {
   const token = req.query.access_token
