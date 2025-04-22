@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const META_DB_ID = '1dd31746bed9803a85b5f062fa37eed5' // 예: 'abcdef1234567890abcdef1234567890'
+const META_DB_ID = '1dd31746bed980c59dbbdb862e115597' // 예: 'abcdef1234567890abcdef1234567890'
 
 export default async function handler(req, res) {
   const token = req.query.access_token
@@ -19,7 +19,8 @@ export default async function handler(req, res) {
     // 사용자 정보 조회
     const userRes = await axios.get('https://api.notion.com/v1/users/me', { headers })
     const userId = userRes.data.id
-    
+    console.log('userId:', userId)
+
     // meta DB에서 user_id 검색
     const metaQuery = await axios.post( 
       `https://api.notion.com/v1/databases/${META_DB_ID}/query`,
@@ -33,7 +34,6 @@ export default async function handler(req, res) {
       },
       { headers }
     )
-    console.log('MetaQuery:', metaQuery)
 
     let dbId = null
 
