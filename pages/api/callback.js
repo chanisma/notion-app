@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     const accessToken = tokenRes.data.access_token;
 
     // access token을 쿼리로 넘기기 (임시)
-    res.redirect(`/api/createDb?access_token=${accessToken}`);
+    res.redirect(`/api/checkOrCreateDb?access_token=${accessToken}`);
   } catch (err) {
     console.error(err.response?.data || err.message);
     res.status(500).send('OAuth 실패');
