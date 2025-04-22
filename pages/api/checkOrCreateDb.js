@@ -1,28 +1,34 @@
 import axios from 'axios'
 
-const META_DB_ID = '1dd31746bed980c59dbbdb862e115597' // 예: 'abcdef1234567890abcdef1234567890'
+const META_DB_ID = process.env.NOTION_META_DB_ID
+const ADMIN_TOKEN = process.env.NOTION_ADMIN_TOKEN
+const NOTION_API_VERSION = process.env.NOTION_API_VERSION || '2022-06-28'
 
 export default async function handler(req, res) {
-  const token = req.query.access_token
-
-  if (!token) {
+  const userToken = req.query.access_token
+  if (!userToken) {
     return res.status(400).send("❗ access_token 없음")
   }
 
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    'Notion-Version': process.env.NOTION_API_VERSION,
+  const userHeaders = {
+    Authorization: `Bearer ${userToken}`,
+    'Notion-Version': NOTION_API_VERSION,
+    'Content-Type': 'application/json'
+  }
+
+  const adminHeaders = {
+    Authorization: `Bearer ${ADMIN_TOKEN}`,
+    'Notion-Version': NOTION_API_VERSION,
     'Content-Type': 'application/json'
   }
 
   try {
-    // 사용자 정보 조회
-    const userRes = await axios.get('https://api.notion.com/v1/users/me', { headers })
+    // 1. 사용자 정보 조회
+    const userRes = await axios.get('https://api.notion.com/v1/users/me', { headers: userHeaders })
     const userId = userRes.data.id
-    console.log('userId:', userId)
 
-    // meta DB에서 user_id 검색
-    const metaQuery = await axios.post( 
+    // 2. meta DB에서 userId 검색 (관리자 토큰 사용)
+    const metaQuery = await axios.post(
       `https://api.notion.com/v1/databases/${META_DB_ID}/query`,
       {
         filter: {
@@ -32,25 +38,22 @@ export default async function handler(req, res) {
           }
         }
       },
-      { headers }
+      { headers: adminHeaders }
     )
 
     let dbId = null
 
     if (metaQuery.data.results.length > 0) {
-      // 기존 DB ID 사용
       dbId = metaQuery.data.results[0].properties.DbId.rich_text[0].plain_text
-      console.log(dbId)
     } else {
-      // 새 페이지 생성
+      // 3. 사용자 워크스페이스에 페이지 + DB 생성
       const pageRes = await axios.post('https://api.notion.com/v1/pages', {
         parent: { type: 'user_id', user_id: userId },
         properties: {}
-      }, { headers })
+      }, { headers: userHeaders })
 
       const pageId = pageRes.data.id
 
-      // 새 DB 생성
       const dbRes = await axios.post('https://api.notion.com/v1/databases', {
         parent: { type: 'page_id', page_id: pageId },
         title: [{ type: 'text', text: { content: 'My Auto Notion DB' } }],
@@ -66,39 +69,31 @@ export default async function handler(req, res) {
           },
           Done: { checkbox: {} }
         }
-      }, { headers })
+      }, { headers: userHeaders })
 
       dbId = dbRes.data.id
 
-      console.log('🔍 Meta DB 저장 요청 전');
-      console.log('🧾 META_DB_ID:', META_DB_ID);
-      console.log('🧑‍🎓 userId:', userId);
-      console.log('📄 dbId:', dbId);
-
-      // meta DB에 user_id → db_id 저장
+      // 4. meta DB에 userId → dbId 저장 (관리자 토큰 사용)
       await axios.post('https://api.notion.com/v1/pages', {
         parent: {
           database_id: META_DB_ID
         },
         properties: {
           UserId: {
-            rich_text: [{ type: 'title', text: { content: userId } }]
+            title: [{ type: 'text', text: { content: userId } }]
           },
           DbId: {
             rich_text: [{ type: 'text', text: { content: dbId } }]
           }
         }
-      }, { headers })
+      }, { headers: adminHeaders })
     }
 
-    // DB 내용 조회
-    const queryRes = await axios.post(
-      `https://api.notion.com/v1/databases/${dbId}/query`,
-      {},
-      { headers }
-    )
+    // 5. 사용자 DB 내용 조회
+    const queryRes = await axios.post(`https://api.notion.com/v1/databases/${dbId}/query`, {}, { headers: userHeaders })
+    const items = queryRes.data.results
 
-    const rows = queryRes.data.results.map((item) => {
+    const rows = items.map((item) => {
       const props = item.properties
       const name = props.Name?.title?.[0]?.plain_text || '(no title)'
       const tags = props.Tag?.multi_select?.map(t => t.name).join(', ') || ''
@@ -107,12 +102,10 @@ export default async function handler(req, res) {
     })
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8')
-    res.send(`
-      <h2>사용자 Notion DB 항목</h2>
-      <ul>${rows.join('')}</ul>
-    `)
+    res.send(`<h2>📄 사용자 Notion DB 항목</h2><ul>${rows.join('')}</ul>`)
+
   } catch (err) {
-    console.error('❌ 오류:', err.response?.data || err.message)
+    console.error('❌ 오류:', JSON.stringify(err.response?.data || err.message, null, 2))
     res.status(500).send("❌ 사용자별 DB 처리 중 오류 발생")
   }
 }
