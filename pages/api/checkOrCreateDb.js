@@ -68,6 +68,11 @@ export default async function handler(req, res) {
 
       dbId = dbRes.data.id
 
+      console.log("🚀 Meta 저장 요청 전 확인");
+      console.log("📁 META_DB_ID:", META_DB_ID);
+      console.log("🆔 UserID:", userId);
+      console.log("📦 DbID:", dbId);
+
       // meta DB에 user_id → db_id 저장
       await axios.post('https://api.notion.com/v1/pages', {
         parent: {
