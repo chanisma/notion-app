@@ -78,8 +78,11 @@ export default async function handler(req, res) {
       return `<li><strong>${name}</strong> [${tags}] - ${done}</li>`;
     });
 
-    res.setHeader('Content-Type', 'text/html');
-    res.send(`<h2>📄 Notion DB 항목</h2><ul>${rows.join('')}</ul>`);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(`
+        <h2>📄 Notion DB 항목</h2>
+        <ul>${rows.join('')}</ul>
+        `);
   } catch (err) {
     console.error('❌ checkOrCreateDb 에러:', err.response?.data || err.message);
     res.status(500).send("❌ DB 확인 또는 생성 중 오류 발생");
