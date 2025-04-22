@@ -2,11 +2,6 @@ import axios from 'axios'
 
 const META_DB_ID = '1dd31746bed980c59dbbdb862e115597' // 예: 'abcdef1234567890abcdef1234567890'
 
-console.log('🔍 Meta DB 저장 요청 전');
-console.log('🧾 META_DB_ID:', META_DB_ID);
-console.log('🧑‍🎓 userId:', userId);
-console.log('📄 dbId:', dbId);
-
 export default async function handler(req, res) {
   const token = req.query.access_token
 
@@ -72,6 +67,11 @@ export default async function handler(req, res) {
       }, { headers })
 
       dbId = dbRes.data.id
+
+      console.log('🔍 Meta DB 저장 요청 전');
+      console.log('🧾 META_DB_ID:', META_DB_ID);
+      console.log('🧑‍🎓 userId:', userId);
+      console.log('📄 dbId:', dbId);
 
       // meta DB에 user_id → db_id 저장
       await axios.post('https://api.notion.com/v1/pages', {
