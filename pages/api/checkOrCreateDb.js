@@ -4,20 +4,21 @@ import { viewDB } from '../../lib/viewDB'
 
 const TEMPLATE_DB_TITLE = 'Auto Notion Template'
 
-/** 🔁 access_token 유효성 검사 + refresh_token으로 재발급 (res는 사용 안 함) */
+/**
+ * ✅ 해결 방법 2: 내부에서 redirect 하지 않고, 
+ * access_token 또는 null만 반환
+ */
 async function getValidAccessToken(userId, user) {
   try {
-    // 현재 access_token이 유효한지 확인
     await axios.get('https://api.notion.com/v1/users/me', {
       headers: { Authorization: `Bearer ${user.access_token}` }
     })
     return user.access_token
   } catch {
     if (!user.refresh_token) {
-      return null  // ❌ refresh_token도 없으면 실패
+      return null
     }
 
-    // refresh_token으로 새 access_token 발급
     const tokenRes = await axios.post('https://api.notion.com/v1/oauth/token', {
       grant_type: 'refresh_token',
       refresh_token: user.refresh_token
@@ -30,7 +31,7 @@ async function getValidAccessToken(userId, user) {
     })
 
     const access_token = tokenRes.data.access_token
-    await db.ref(`users/${userId}`).update({ access_token }) // 새 토큰 저장
+    await db.ref(`users/${userId}`).update({ access_token })
     return access_token
   }
 }
@@ -45,13 +46,13 @@ export default async function handler(req, res) {
     const user = snapshot.val()
 
     if (!user || !user.access_token) {
-      return res.redirect('/reauth?reason=no_token')
+      return res.redirect(`/reauth?reason=missing_token`)
     }
 
     const accessToken = await getValidAccessToken(userId, user)
 
     if (!accessToken) {
-      return res.redirect('/reauth?reason=expired')
+      return res.redirect(`/reauth?reason=expired_or_no_refresh`)
     }
 
     const headers = {
@@ -63,7 +64,7 @@ export default async function handler(req, res) {
     let dbId = user.dbId
 
     if (!dbId) {
-      // ✅ 사용자 워크스페이스에서 템플릿 DB 검색
+      // 복제된 템플릿 DB 검색
       const searchRes = await axios.post('https://api.notion.com/v1/search', {
         query: TEMPLATE_DB_TITLE,
         sort: { direction: 'descending', timestamp: 'last_edited_time' },
@@ -84,7 +85,6 @@ export default async function handler(req, res) {
       await userRef.update({ dbId })
     }
 
-    // ✅ DB 내용 표시
     const html = await viewDB(dbId, headers)
     res.setHeader('Content-Type', 'text/html; charset=utf-8')
     res.send(html)
