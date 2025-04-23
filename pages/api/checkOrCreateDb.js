@@ -51,8 +51,8 @@ export default async function handler(req, res) {
 
     const accessToken = await getValidAccessToken(userId, user)
 
-    if (!accessToken) {
-      return res.redirect(`/reauth?reason=expired_or_no_refresh`)
+    if (!user.refresh_token) {
+        return res.redirect(`/reauth?reason=expired_or_logged_out`)
     }
 
     const headers = {

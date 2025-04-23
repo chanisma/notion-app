@@ -5,6 +5,10 @@ export default function ReauthPage() {
   const reason = router.query.reason
 
   const messages = {
+    expired_or_logged_out: {
+      title: '🔐 로그인 세션이 만료되었거나 로그아웃되었습니다',
+      description: 'Notion 계정으로 다시 로그인해주세요.'
+    },
     missing_token: {
       title: '🔐 인증이 필요합니다',
       description: 'Notion 계정으로 로그인하지 않았거나 토큰이 없습니다. 다시 로그인해 주세요.'
