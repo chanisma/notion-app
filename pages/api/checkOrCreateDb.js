@@ -31,17 +31,25 @@ export default async function handler(req, res) {
       const searchRes = await axios.post('https://api.notion.com/v1/search', {
         sort: { direction: 'descending', timestamp: 'last_edited_time' }
         }, { headers })
-      searchRes.data.results.forEach(page => {
-        console.log('🔍 제목:', page.properties?.title?.[0]?.plain_text)
-        console.log('🧾 페이지 ID:', page.id)
-        console.log('📦 parent:', page.parent)
-      })
+        searchRes.data.results.forEach(page => {
+            const title =
+              page.properties?.title?.title?.[0]?.plain_text || // Notion DB식 title
+              page.properties?.title?.[0]?.plain_text ||        // 일반 페이지
+              page.title?.[0]?.plain_text ||                    // 일부 복제 페이지
+              '(제목 없음)'
+          
+            console.log('📄 탐색된 페이지 제목:', title)
+            console.log('🆔 page_id:', page.id)
+          })
 
-      const matched = searchRes.data.results.find(page =>
-        page.object === 'page' &&
-        page.parent?.type === 'workspace' &&
-        page.properties?.title?.[0]?.plain_text === TEMPLATE_PAGE_TITLE
-      )
+      const matched = searchRes.data.results.find(page => {
+        const title =
+            page.properties?.title?.title?.[0]?.plain_text ||
+            page.properties?.title?.[0]?.plain_text ||
+            page.title?.[0]?.plain_text
+
+        return title === 'Auto Notion Template'
+        })
 
       if (!matched) throw new Error('❌ 복제된 템플릿 페이지를 찾을 수 없음')
 
