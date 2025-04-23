@@ -4,7 +4,6 @@ import {db} from '../../lib/firebase-admin'
 console.log('🔥 typeof db:', typeof db)
 console.log('🔥 typeof db.ref:', typeof db?.ref)
 
-
 const NOTION_API_VERSION = process.env.NOTION_API_VERSION || '2022-06-28'
 
 export default async function handler(req, res) {
@@ -33,6 +32,7 @@ export default async function handler(req, res) {
       console.log('📄 기존 dbId 찾음:', dbId)
     } else {
       // 3. 사용자 워크스페이스에 페이지 생성
+      console.log('📄 3. 사용자 워크스페이스에 페이지 생성')
       const pageRes = await axios.post('https://api.notion.com/v1/pages', {
         parent: { type: 'user_id', user_id: userId },
         properties: {}
@@ -41,6 +41,7 @@ export default async function handler(req, res) {
       const pageId = pageRes.data.id
 
       // 4. DB 생성
+      console.log('📄 4. DB 생성')
       const dbRes = await axios.post('https://api.notion.com/v1/databases', {
         parent: { type: 'page_id', page_id: pageId },
         title: [{ type: 'text', text: { content: 'My Auto Notion DB' } }],
