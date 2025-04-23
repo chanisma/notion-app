@@ -21,7 +21,7 @@ async function getValidAccessToken(userId) {
   } catch {
     // 🔁 전략 2: access_token 실패 시 refresh_token 시도
     if (!user.refresh_token) {
-      throw new Error('❌ refresh_token 없음: 재로그인 필요')
+        return res.redirect(`/reauth?user_id=${userId}`)
     }
 
     const tokenRes = await axios.post('https://api.notion.com/v1/oauth/token', {
