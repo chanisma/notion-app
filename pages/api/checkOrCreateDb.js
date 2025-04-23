@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { db } from '../../lib/firebase-admin'
+import { viewDB } from '../../lib/viewDB'
 
 export default async function handler(req, res) {
   const token = req.query.access_token
@@ -50,23 +51,11 @@ export default async function handler(req, res) {
       await ref.set({ dbId })
     }
 
-    // ✅ DB 내용 출력
-    const queryRes = await axios.post(
-      `https://api.notion.com/v1/databases/${dbId}/query`,
-      {},
-      { headers }
-    )
-
-    const rows = queryRes.data.results.map(item => {
-      const props = item.properties
-      const name = props.Name?.title?.[0]?.plain_text || '(no title)'
-      const tags = props.Category?.multi_select?.map(t => t.name).join(', ') || ''
-      const done = props.Done?.checkbox ? '✅' : '❌'
-      return `<li><strong>${name}</strong> [${tags}] - ${done}</li>`
-    })
+    //viewDB로 출력
+    const html = await viewDB(dbId, headers)
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8')
-    res.send(`<h2>📋 사용자 Notion DB 항목</h2><ul>${rows.join('')}</ul>`)
+    res.send(html)
 
   } catch (err) {
     console.error('❌ 사용자별 DB 처리 중 오류:', err.response?.data || err.message)
