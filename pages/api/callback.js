@@ -22,8 +22,8 @@ export default async function handler(req, res) {
     })
 
     const { access_token, refresh_token, workspace_id } = tokenRes.data
-
-    console.log('✅ Access Token:', access_token)
+    console.log('access_token:', access_token)
+    console.log('refresh_token:', refresh_token) 
 
     // 사용자 정보 조회
     const userInfo = await axios.get('https://api.notion.com/v1/users/me', {
@@ -37,11 +37,16 @@ export default async function handler(req, res) {
     const userId = userInfo.data.id
 
     // Firebase 저장
-    await db.ref(`users/${userId}`).set({
+    const saveData = {
       access_token,
-      refresh_token,
       workspace_id
-    })
+    }
+    
+    if (refresh_token) {
+      saveData.refresh_token = refresh_token
+    }
+    
+    await db.ref(`users/${userId}`).set(saveData)
 
     res.redirect(`/api/checkOrCreateDb?user_id=${userId}`)
 
