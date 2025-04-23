@@ -4,26 +4,20 @@ import { viewDB } from '../../lib/viewDB'
 
 const TEMPLATE_DB_TITLE = 'Auto Notion Template'
 
-async function getValidAccessToken(userId) {
-  const ref = db.ref(`users/${userId}`)
-  const snapshot = await ref.once('value')
-  const user = snapshot.val()
-
-  if (!user || !user.access_token) {
-    throw new Error('❌ 사용자 정보 없음 또는 access_token 누락')
-  }
-
+/** 🔁 access_token 유효성 검사 + refresh_token으로 재발급 (res는 사용 안 함) */
+async function getValidAccessToken(userId, user) {
   try {
+    // 현재 access_token이 유효한지 확인
     await axios.get('https://api.notion.com/v1/users/me', {
       headers: { Authorization: `Bearer ${user.access_token}` }
     })
     return user.access_token
   } catch {
-    // 🔁 전략 2: access_token 실패 시 refresh_token 시도
     if (!user.refresh_token) {
-        return res.redirect(`/reauth?user_id=${userId}`)
+      return null  // ❌ refresh_token도 없으면 실패
     }
 
+    // refresh_token으로 새 access_token 발급
     const tokenRes = await axios.post('https://api.notion.com/v1/oauth/token', {
       grant_type: 'refresh_token',
       refresh_token: user.refresh_token
@@ -35,8 +29,8 @@ async function getValidAccessToken(userId) {
       headers: { 'Content-Type': 'application/json' }
     })
 
-    const { access_token } = tokenRes.data
-    await ref.update({ access_token }) // 🔄 새 access_token 저장
+    const access_token = tokenRes.data.access_token
+    await db.ref(`users/${userId}`).update({ access_token }) // 새 토큰 저장
     return access_token
   }
 }
@@ -46,7 +40,19 @@ export default async function handler(req, res) {
   if (!userId) return res.status(400).send('❗ user_id 없음')
 
   try {
-    const accessToken = await getValidAccessToken(userId)
+    const userRef = db.ref(`users/${userId}`)
+    const snapshot = await userRef.once('value')
+    const user = snapshot.val()
+
+    if (!user || !user.access_token) {
+      return res.redirect('/reauth?reason=no_token')
+    }
+
+    const accessToken = await getValidAccessToken(userId, user)
+
+    if (!accessToken) {
+      return res.redirect('/reauth?reason=expired')
+    }
 
     const headers = {
       Authorization: `Bearer ${accessToken}`,
@@ -54,13 +60,10 @@ export default async function handler(req, res) {
       'Content-Type': 'application/json'
     }
 
-    const userRef = db.ref(`users/${userId}`)
-    const snapshot = await userRef.once('value')
-    const user = snapshot.val()
-
     let dbId = user.dbId
 
     if (!dbId) {
+      // ✅ 사용자 워크스페이스에서 템플릿 DB 검색
       const searchRes = await axios.post('https://api.notion.com/v1/search', {
         query: TEMPLATE_DB_TITLE,
         sort: { direction: 'descending', timestamp: 'last_edited_time' },
@@ -76,10 +79,12 @@ export default async function handler(req, res) {
       )
 
       if (!matched) throw new Error('❌ 복제된 템플릿 DB를 찾을 수 없음')
+
       dbId = matched.id
       await userRef.update({ dbId })
     }
 
+    // ✅ DB 내용 표시
     const html = await viewDB(dbId, headers)
     res.setHeader('Content-Type', 'text/html; charset=utf-8')
     res.send(html)
