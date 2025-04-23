@@ -11,14 +11,14 @@ export default async function handler(req, res) {
     'Content-Type': 'application/json'
   }
 
-  const TEMPLATE_PAGE_TITLE = 'Auto Notion Template' // ⬅️ 여기 하드코딩됨
+  const TEMPLATE_DB_TITLE = 'Auto Notion Template' // 복제된 템플릿 DB 이름
 
   try {
     // 사용자 정보 조회
     const userRes = await axios.get('https://api.notion.com/v1/users/me', { headers })
     const userId = userRes.data.id
 
-    // Firebase에서 사용자 기록 확인
+    // Firebase 확인
     const ref = db.ref(`users/${userId}`)
     const snapshot = await ref.once('value')
 
@@ -27,59 +27,30 @@ export default async function handler(req, res) {
     if (snapshot.exists()) {
       dbId = snapshot.val().dbId
     } else {
-      // 복제된 템플릿 페이지 검색
+      // ✅ 복제된 템플릿 DB 검색
       const searchRes = await axios.post('https://api.notion.com/v1/search', {
-        sort: { direction: 'descending', timestamp: 'last_edited_time' }
-        }, { headers })
-        searchRes.data.results.forEach(page => {
-            const title =
-              page.properties?.title?.title?.[0]?.plain_text || // Notion DB식 title
-              page.properties?.title?.[0]?.plain_text ||        // 일반 페이지
-              page.title?.[0]?.plain_text ||                    // 일부 복제 페이지
-              '(제목 없음)'
-          
-            console.log('📄 탐색된 페이지 제목:', title)
-            console.log('🆔 page_id:', page.id)
-          })
-
-      const matched = searchRes.data.results.find(page => {
-        const title =
-            page.properties?.title?.title?.[0]?.plain_text ||
-            page.properties?.title?.[0]?.plain_text ||
-            page.title?.[0]?.plain_text
-
-        return title === 'Auto Notion Template'
-        })
-
-      if (!matched) throw new Error('❌ 복제된 템플릿 페이지를 찾을 수 없음')
-
-      const pageId = matched.id
-
-      // 해당 페이지에 새 DB 생성
-      const dbRes = await axios.post('https://api.notion.com/v1/databases', {
-        parent: { page_id: pageId },
-        title: [{ type: 'text', text: { content: 'My Auto DB' } }],
-        properties: {
-          Name: { title: {} },
-          Tag: {
-            multi_select: {
-              options: [
-                { name: 'Work', color: 'blue' },
-                { name: 'Study', color: 'green' }
-              ]
-            }
-          },
-          Done: { checkbox: {} }
-        }
+        query: TEMPLATE_DB_TITLE,
+        sort: { direction: 'descending', timestamp: 'last_edited_time' },
+        filter: { value: 'database', property: 'object' }
       }, { headers })
 
-      dbId = dbRes.data.id
+      const matched = searchRes.data.results.find(db =>
+        db.object === 'database' &&
+        (
+          db.title?.[0]?.plain_text === TEMPLATE_DB_TITLE ||  // 안전하게
+          db.properties?.title?.[0]?.plain_text === TEMPLATE_DB_TITLE
+        )
+      )
 
-      // Firebase에 저장
+      if (!matched) throw new Error('❌ 복제된 템플릿 DB를 찾을 수 없음')
+
+      dbId = matched.id
+
+      // ✅ Firebase에 저장
       await ref.set({ dbId })
     }
 
-    // DB 내용 출력
+    // ✅ DB 내용 출력
     const queryRes = await axios.post(
       `https://api.notion.com/v1/databases/${dbId}/query`,
       {},
@@ -87,9 +58,10 @@ export default async function handler(req, res) {
     )
 
     const rows = queryRes.data.results.map(item => {
-      const name = item.properties.Name?.title?.[0]?.plain_text || '(no title)'
-      const tags = item.properties.Tag?.multi_select?.map(t => t.name).join(', ') || ''
-      const done = item.properties.Done?.checkbox ? '✅' : '❌'
+      const props = item.properties
+      const name = props.Name?.title?.[0]?.plain_text || '(no title)'
+      const tags = props.Category?.multi_select?.map(t => t.name).join(', ') || ''
+      const done = props.Done?.checkbox ? '✅' : '❌'
       return `<li><strong>${name}</strong> [${tags}] - ${done}</li>`
     })
 
