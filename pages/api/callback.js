@@ -27,7 +27,11 @@ export default async function handler(req, res) {
 
     // 사용자 정보 조회
     const userInfo = await axios.get('https://api.notion.com/v1/users/me', {
-      headers: { Authorization: `Bearer ${access_token}` }
+      headers: { 
+        Authorization: `Bearer ${access_token}` ,
+        'Notion-Version': process.env.NOTION_API_VERSION,
+        'Content-Type': 'application/json'
+    }
     })
 
     const userId = userInfo.data.id
