@@ -27,16 +27,16 @@ export default async function handler(req, res) {
     if (snapshot.exists()) {
       dbId = snapshot.val().dbId
     } else {
-        searchRes.data.results.forEach(page => {
-            const title = page.properties?.title?.[0]?.plain_text
-            console.log('📄 탐색된 페이지:', title, '| page_id:', page.id)
-          })
       // 복제된 템플릿 페이지 검색
       const searchRes = await axios.post('https://api.notion.com/v1/search', {
         query: TEMPLATE_PAGE_TITLE,
         sort: { direction: 'descending', timestamp: 'last_edited_time' },
         filter: { value: 'page', property: 'object' }
       }, { headers })
+      searchRes.data.results.forEach(page => {
+        const title = page.properties?.title?.[0]?.plain_text
+        console.log('📄 탐색된 페이지:', title, '| page_id:', page.id)
+      })
 
       const matched = searchRes.data.results.find(page =>
         page.object === 'page' &&
