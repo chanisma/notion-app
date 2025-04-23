@@ -1,7 +1,7 @@
 import axios from 'axios'
-import db from 'firebase-admin'
+import {db} from 'firebase-admin'
 
-console.log('🔥 Firebase db:', db)
+console.log('🔥 Firebase DB ref 함수 있음?:', typeof db.ref === 'function')
 
 
 const NOTION_API_VERSION = process.env.NOTION_API_VERSION || '2022-06-28'
