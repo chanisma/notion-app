@@ -1,5 +1,8 @@
 import axios from 'axios'
-import { db } from 'firebase-admin'
+import db from 'firebase-admin'
+
+console.log('🔥 Firebase db:', db)
+
 
 const NOTION_API_VERSION = process.env.NOTION_API_VERSION || '2022-06-28'
 
