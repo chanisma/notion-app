@@ -29,13 +29,12 @@ export default async function handler(req, res) {
     } else {
       // 복제된 템플릿 페이지 검색
       const searchRes = await axios.post('https://api.notion.com/v1/search', {
-        query: TEMPLATE_PAGE_TITLE,
-        sort: { direction: 'descending', timestamp: 'last_edited_time' },
-        filter: { value: 'page', property: 'object' }
-      }, { headers })
+        sort: { direction: 'descending', timestamp: 'last_edited_time' }
+        }, { headers })
       searchRes.data.results.forEach(page => {
-        const title = page.properties?.title?.[0]?.plain_text
-        console.log('📄 탐색된 페이지:', title, '| page_id:', page.id)
+        console.log('🔍 제목:', page.properties?.title?.[0]?.plain_text)
+        console.log('🧾 페이지 ID:', page.id)
+        console.log('📦 parent:', page.parent)
       })
 
       const matched = searchRes.data.results.find(page =>
