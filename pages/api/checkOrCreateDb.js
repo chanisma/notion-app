@@ -11,6 +11,8 @@ export default async function handler(req, res) {
     'Content-Type': 'application/json'
   }
 
+  const TEMPLATE_PAGE_TITLE = 'Auto Notion Template' // ⬅️ 여기 하드코딩됨
+
   try {
     // 사용자 정보 조회
     const userRes = await axios.get('https://api.notion.com/v1/users/me', { headers })
@@ -25,13 +27,27 @@ export default async function handler(req, res) {
     if (snapshot.exists()) {
       dbId = snapshot.val().dbId
     } else {
-      // ✅ 새 DB 생성 (복제된 템플릿 페이지 내)
-      const pageId = process.env.DEFAULT_PARENT_PAGE_ID
-      if (!pageId) throw new Error('❗ DEFAULT_PARENT_PAGE_ID 없음')
+      // 복제된 템플릿 페이지 검색
+      const searchRes = await axios.post('https://api.notion.com/v1/search', {
+        query: TEMPLATE_PAGE_TITLE,
+        sort: { direction: 'descending', timestamp: 'last_edited_time' },
+        filter: { value: 'page', property: 'object' }
+      }, { headers })
 
+      const matched = searchRes.data.results.find(page =>
+        page.object === 'page' &&
+        page.parent?.type === 'workspace' &&
+        page.properties?.title?.[0]?.plain_text === TEMPLATE_PAGE_TITLE
+      )
+
+      if (!matched) throw new Error('❌ 복제된 템플릿 페이지를 찾을 수 없음')
+
+      const pageId = matched.id
+
+      // 해당 페이지에 새 DB 생성
       const dbRes = await axios.post('https://api.notion.com/v1/databases', {
         parent: { page_id: pageId },
-        title: [{ type: 'text', text: { content: 'Auto Notion DB' } }],
+        title: [{ type: 'text', text: { content: 'My Auto DB' } }],
         properties: {
           Name: { title: {} },
           Tag: {
@@ -52,7 +68,7 @@ export default async function handler(req, res) {
       await ref.set({ dbId })
     }
 
-    // ✅ DB 내용 출력
+    // DB 내용 출력
     const queryRes = await axios.post(
       `https://api.notion.com/v1/databases/${dbId}/query`,
       {},
