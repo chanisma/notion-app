@@ -4,21 +4,26 @@ import { viewDB } from '../../lib/viewDB'
 
 const TEMPLATE_DB_TITLE = 'Auto Notion Template'
 
-/** ✅ access_token 유효성 검사 + 만료 시 자동 refresh */
 async function getValidAccessToken(userId) {
   const ref = db.ref(`users/${userId}`)
   const snapshot = await ref.once('value')
   const user = snapshot.val()
-  if (!user) throw new Error('❌ 사용자 정보 없음')
+
+  if (!user || !user.access_token) {
+    throw new Error('❌ 사용자 정보 없음 또는 access_token 누락')
+  }
 
   try {
-    // 현재 access_token이 유효한지 확인
     await axios.get('https://api.notion.com/v1/users/me', {
       headers: { Authorization: `Bearer ${user.access_token}` }
     })
     return user.access_token
   } catch {
-    // 만료된 경우 refresh_token으로 새 access_token 발급
+    // 🔁 전략 2: access_token 실패 시 refresh_token 시도
+    if (!user.refresh_token) {
+      throw new Error('❌ refresh_token 없음: 재로그인 필요')
+    }
+
     const tokenRes = await axios.post('https://api.notion.com/v1/oauth/token', {
       grant_type: 'refresh_token',
       refresh_token: user.refresh_token
@@ -31,7 +36,7 @@ async function getValidAccessToken(userId) {
     })
 
     const { access_token } = tokenRes.data
-    await ref.update({ access_token }) // 새 토큰 저장
+    await ref.update({ access_token }) // 🔄 새 access_token 저장
     return access_token
   }
 }
@@ -56,7 +61,6 @@ export default async function handler(req, res) {
     let dbId = user.dbId
 
     if (!dbId) {
-      // ✅ 사용자의 워크스페이스에서 복제된 템플릿 DB 검색
       const searchRes = await axios.post('https://api.notion.com/v1/search', {
         query: TEMPLATE_DB_TITLE,
         sort: { direction: 'descending', timestamp: 'last_edited_time' },
@@ -72,20 +76,16 @@ export default async function handler(req, res) {
       )
 
       if (!matched) throw new Error('❌ 복제된 템플릿 DB를 찾을 수 없음')
-
       dbId = matched.id
-
-      // ✅ Firebase에 dbId 저장
       await userRef.update({ dbId })
     }
 
-    // ✅ DB 조회 후 HTML 렌더링
     const html = await viewDB(dbId, headers)
     res.setHeader('Content-Type', 'text/html; charset=utf-8')
     res.send(html)
 
   } catch (err) {
     console.error('❌ 사용자별 DB 처리 중 오류:', err.response?.data || err.message)
-    res.status(500).send('❌ 사용자별 DB 처리 중 오류 발생')
+    res.status(500).send(`<h2>오류</h2><pre>${JSON.stringify(err.response?.data || err.message, null, 2)}</pre>`)
   }
 }
