@@ -1,7 +1,6 @@
 import axios from 'axios'
+import { db } from '../../lib/firebase-admin'
 
-const META_DB_ID = process.env.NOTION_META_DB_ID
-const ADMIN_TOKEN = process.env.NOTION_ADMIN_TOKEN
 const NOTION_API_VERSION = process.env.NOTION_API_VERSION || '2022-06-28'
 
 export default async function handler(req, res) {
@@ -16,50 +15,28 @@ export default async function handler(req, res) {
     'Content-Type': 'application/json'
   }
 
-  const adminHeaders = {
-    Authorization: `Bearer ${ADMIN_TOKEN}`,
-    'Notion-Version': NOTION_API_VERSION,
-    'Content-Type': 'application/json'
-  }
-
   try {
-    // ✅ 환경 변수 로그 찍기
-    console.log('🧾 META_DB_ID:', META_DB_ID)
-
     // 1. 사용자 정보 조회
     const userRes = await axios.get('https://api.notion.com/v1/users/me', { headers: userHeaders })
     const userId = userRes.data.id
-    console.log('👤 User ID:', userId)
+    console.log('👤 사용자 ID:', userId)
 
-    // 2. meta DB에서 userId 검색 (관리자 토큰 사용)
-    const metaQuery = await axios.post(
-      `https://api.notion.com/v1/databases/${META_DB_ID}/query`,
-      {
-        filter: {
-          property: 'UserId',
-          title: {
-            equals: userId
-          }
-        }
-      },
-      { headers: adminHeaders }
-    )
+    // 2. Firebase에서 dbId 조회
+    const snapshot = await db.ref(`users/${userId}/dbId`).once('value')
+    let dbId = snapshot.val()
 
-    let dbId = null
-
-    if (metaQuery.data.results.length > 0) {
-      dbId = metaQuery.data.results[0].properties.DbId.rich_text[0].plain_text
-      console.log('📄 기존 DB ID 사용:', dbId)
+    if (dbId) {
+      console.log('📄 기존 dbId 찾음:', dbId)
     } else {
-      // 3. 사용자 워크스페이스에 페이지 + DB 생성
+      // 3. 사용자 워크스페이스에 페이지 생성
       const pageRes = await axios.post('https://api.notion.com/v1/pages', {
         parent: { type: 'user_id', user_id: userId },
         properties: {}
       }, { headers: userHeaders })
 
       const pageId = pageRes.data.id
-      console.log('📄 새 페이지 생성:', pageId)
 
+      // 4. DB 생성
       const dbRes = await axios.post('https://api.notion.com/v1/databases', {
         parent: { type: 'page_id', page_id: pageId },
         title: [{ type: 'text', text: { content: 'My Auto Notion DB' } }],
@@ -78,27 +55,14 @@ export default async function handler(req, res) {
       }, { headers: userHeaders })
 
       dbId = dbRes.data.id
-      console.log('✅ 새 DB 생성:', dbId)
+      console.log('🆕 새 dbId 생성:', dbId)
 
-      // 4. meta DB에 userId → dbId 저장 (관리자 토큰 사용)
-      const metaSave = await axios.post('https://api.notion.com/v1/pages', {
-        parent: {
-          database_id: META_DB_ID
-        },
-        properties: {
-          UserId: {
-            title: [{ type: 'text', text: { content: userId } }]
-          },
-          DbId: {
-            rich_text: [{ type: 'text', text: { content: dbId } }]
-          }
-        }
-      }, { headers: adminHeaders })
-
-      console.log('💾 Meta DB 저장 성공:', metaSave.data.id)
+      // 5. Firebase에 저장
+      await db.ref(`users/${userId}`).set({ dbId })
+      console.log('✅ Firebase 저장 완료')
     }
 
-    // 5. 사용자 DB 내용 조회
+    // 6. DB 내용 조회
     const queryRes = await axios.post(`https://api.notion.com/v1/databases/${dbId}/query`, {}, { headers: userHeaders })
     const items = queryRes.data.results
 
