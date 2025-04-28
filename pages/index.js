@@ -15,24 +15,30 @@ export default function Home() {
   useEffect(() => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ hd: "kijun.hs.kr" });
-
-    // 1) Handle the redirect result (once, after coming back)
-    getRedirectResult(auth)
-      .then((result) => {
+  
+    (async () => {
+      try {
+        // 1) 리디렉트 복귀 직후 한 번 결과 처리
+        const result = await getRedirectResult(auth);
         if (result?.user) {
-          setUser(result.user);
+          console.log("✅ Redirect 성공, 유저:", result.user.email);
+          return; // 여기서 끝내면 무한 리디렉트 방지
         }
-      })
-      .catch((err) => console.error("Redirect failed:", err));
-
-    // 2) Watch auth state
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setInitializing(false);
-    });
-
-    return unsub;
-  }, []);
+      } catch (e) {
+        console.warn("getRedirectResult 에러:", e);
+      }
+  
+      // 2) 현재 인증 상태 보고, 로그인 안 됐으면 리디렉트 시작
+      onAuthStateChanged(auth, (user) => {
+        if (!user) {
+          console.log("👀 로그인 안 됐음, 리디렉트 호출");
+          signInWithRedirect(auth, provider);
+        } else {
+          console.log("👋 이미 로그인된 유저:", user.email);
+        }
+      });
+    })();
+  }, []);  
 
   if (initializing) return <p>로딩 중…</p>;
 
@@ -44,7 +50,7 @@ export default function Home() {
           onClick={() => {
             const provider = new GoogleAuthProvider();
             provider.setCustomParameters({ hd: "kijun.hs.kr" });
-            signInWithRedirect(auth, provider);
+            signInWithRedirect(auth, provider);d
           }}
         >
           Sign in with Google (@kijun.hs.kr only)
