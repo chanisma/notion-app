@@ -57,7 +57,9 @@ export default function Home() {
   return (
     <div>
       <h1>환영합니다, {user.email}</h1>
-      {/* …Notion OAuth 버튼 등 */}
+      <a href="/api/auth">
+            <button>Notion 로그인 및 DB 확인</button>
+      </a>
     </div>
   );
 }
