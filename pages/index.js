@@ -1,34 +1,67 @@
 // pages/index.js
 import { useEffect, useState } from "react";
 import { auth } from "../lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
-import GoogleLoginButton from "../components/GoogleLoginButton";
+import {
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithRedirect,
+  getRedirectResult,
+} from "firebase/auth";
 
 export default function Home() {
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ hd: "kijun.hs.kr" });
+
+    // 1) Handle the redirect result (once, after coming back)
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          setUser(result.user);
+        }
+      })
+      .catch((err) => console.error("Redirect failed:", err));
+
+    // 2) Watch auth state
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setInitializing(false);
     });
+
     return unsub;
   }, []);
 
   if (initializing) return <p>로딩 중…</p>;
+
+  // Not signed in yet? Kick off the redirect
   if (!user) {
-    // 로그인 전 화면: 버튼만 덩그러니
     return (
       <div style={{ display: "flex", height: "100vh", alignItems: "center", justifyContent: "center" }}>
-        <GoogleLoginButton onSuccess={() => { /* 리다이렉트 or 상태 갱신 */ }} />
+        <button
+          onClick={() => {
+            const provider = new GoogleAuthProvider();
+            provider.setCustomParameters({ hd: "kijun.hs.kr" });
+            signInWithRedirect(auth, provider);
+          }}
+        >
+          Sign in with Google (@kijun.hs.kr only)
+        </button>
       </div>
     );
   }
 
-  // 로그인 후 대시보드
-  return <Dashboard />;
+  // Signed in: show your dashboard / Notion-connect UI
+  return (
+    <div>
+      <h1>환영합니다, {user.email}</h1>
+      {/* …Notion OAuth 버튼 등 */}
+    </div>
+  );
 }
+
 
 
 
