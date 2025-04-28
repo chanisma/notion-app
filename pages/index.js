@@ -8,9 +8,6 @@ import {
   getRedirectResult,
 } from "firebase/auth";
 
-import { setLogLevel } from "firebase/auth";
-setLogLevel("debug");
-
 export default function Home() {
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState(null);
