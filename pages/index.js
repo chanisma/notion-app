@@ -4,7 +4,6 @@ import { auth } from "../lib/firebase";
 import {
     getAuth,
   GoogleAuthProvider,
-  onAuthStateChanged,
   signInWithRedirect,
   getRedirectResult,
 } from "firebase/auth";
