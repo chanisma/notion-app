@@ -1,49 +1,72 @@
 // pages/index.js
-import { useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import { auth } from "../lib/firebase";
 import {
   GoogleAuthProvider,
-  signInWithRedirect,
   getRedirectResult,
+  signInWithRedirect,
+  onAuthStateChanged,
 } from "firebase/auth";
 
 export default function Home() {
-    const [initializing, setInitializing] = useState(true);
+  // ① Declare both pieces of state
+  const [initializing, setInitializing] = useState(true);
+  const [user, setUser] = useState(null);
 
-    useEffect(() => {
-        const provider = new GoogleAuthProvider();
+  useEffect(() => {
+    const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ hd: "kijun.hs.kr" });
 
+    // ② First handle the redirect result once
     getRedirectResult(auth)
-        .then((result) => {
-            console.log("🔍 getRedirectResult:", result);
-            if (!result?.user) {
-            console.log("👀 로그인 안 됐음, 리디렉트 시작");
-            signInWithRedirect(auth, provider);
-            }
-        })
-        .catch((err) => {
-            console.error("⚠️ getRedirectResult 에러:", err);
-            signInWithRedirect(auth, provider);
-        })
-        .finally(() => {
-            // ② Turn off the loading flag
-            setInitializing(false);
-        });
-    }, []);
-        
-  // ← Use it here to avoid referencing an undefined variable
-  if (initializing) return <p>로딩 중…</p>;
+      .then((result) => {
+        console.log("🔍 getRedirectResult:", result);
+        if (result?.user) {
+          setUser(result.user);
+          console.log("✅ Redirect 로그인 성공:", result.user.email);
+        } else {
+          console.log("👀 로그인 안 됐음, 리디렉트 시작");
+          signInWithRedirect(auth, provider);
+        }
+      })
+      .catch((err) => {
+        console.error("⚠️ getRedirectResult 에러:", err);
+        signInWithRedirect(auth, provider);
+      })
+      .finally(() => {
+        // ③ Turn off the loading flag so we can render either login or dashboard
+        setInitializing(false);
+      });
 
-  // Not signed in yet? Kick off the redirect
+    // ④ Also subscribe to ongoing auth-state changes
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      console.log("👤 onAuthStateChanged:", u);
+      setUser(u);
+    });
+    return unsubscribe;
+  }, []);
+
+  // ⑤ Show a loading indicator until we've processed the redirect
+  if (initializing) {
+    return <p>로딩 중…</p>;
+  }
+
+  // ⑥ If still no user, show a manual “Sign in” button
   if (!user) {
     return (
-      <div style={{ display: "flex", height: "100vh", alignItems: "center", justifyContent: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          height: "100vh",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <button
           onClick={() => {
             const provider = new GoogleAuthProvider();
             provider.setCustomParameters({ hd: "kijun.hs.kr" });
-            signInWithRedirect(auth, provider);d
+            signInWithRedirect(auth, provider);
           }}
         >
           Sign in with Google (@kijun.hs.kr only)
@@ -52,16 +75,17 @@ export default function Home() {
     );
   }
 
-  // Signed in: show your dashboard / Notion-connect UI
+  // ⑦ Finally, the logged-in view
   return (
     <div>
       <h1>환영합니다, {user.email}</h1>
       <a href="/api/auth">
-            <button>Notion 로그인 및 DB 확인</button>
+        <button>Notion 로그인 및 DB 확인</button>
       </a>
     </div>
   );
 }
+
 
 
 
