@@ -1,14 +1,11 @@
 // pages/index.js
-import { useEffect, useState } from "react";
+import { useEffect} from "react";
 import { auth } from "../lib/firebase";
 import {
-    getAuth,
   GoogleAuthProvider,
   signInWithRedirect,
   getRedirectResult,
 } from "firebase/auth";
-
-const auth = getAuth();
 
 export default function Home() {
     console.log("Home component render")
