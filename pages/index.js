@@ -1,5 +1,5 @@
 // pages/index.js
-import { useEffect} from "react";
+import { useEffect, useState} from "react";
 import { auth } from "../lib/firebase";
 import {
   GoogleAuthProvider,
@@ -11,30 +11,27 @@ export default function Home() {
     console.log("Home component render")
 
     useEffect(() => {
-        console.log("🟢 Auth useEffect 진입");
         const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({ hd: "kijun.hs.kr" });
-      
-        // ① 리디렉트 복귀 후 한 번만 실행
-        getRedirectResult(auth)
-          .then((result) => {
+    provider.setCustomParameters({ hd: "kijun.hs.kr" });
+
+    getRedirectResult(auth)
+        .then((result) => {
             console.log("🔍 getRedirectResult:", result);
-            if (result?.user) {
-              // 여기서 로그인 처리 끝!
-              console.log("✅ Redirect 성공, 유저:", result.user.email);
-              return;
-            }
-            // ② 아직 유저가 없으면 리디렉트
+            if (!result?.user) {
             console.log("👀 로그인 안 됐음, 리디렉트 시작");
             signInWithRedirect(auth, provider);
-          })
-          .catch((err) => {
+            }
+        })
+        .catch((err) => {
             console.error("⚠️ getRedirectResult 에러:", err);
-            // 에러 났어도 리디렉트 시도
             signInWithRedirect(auth, provider);
-          });
-      }, []);
-      
+        })
+        .finally(() => {
+            // ② Turn off the loading flag
+            setInitializing(false);
+        });
+    }, []);
+        
 
   if (initializing) return <p>로딩 중…</p>;
 
