@@ -9,8 +9,6 @@ import {
 
 export default function Home() {
     console.log("Home component render")
-    const [initializing, setInitializing] = useState(true);
-    const [user, setUser] = useState(null);
 
     useEffect(() => {
         console.log("🟢 Auth useEffect 진입");
