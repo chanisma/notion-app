@@ -2,11 +2,14 @@
 import { useEffect, useState } from "react";
 import { auth } from "../lib/firebase";
 import {
+    getAuth,
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithRedirect,
   getRedirectResult,
 } from "firebase/auth";
+
+const auth = getAuth();
 
 export default function Home() {
     console.log("Home component render")
@@ -17,30 +20,27 @@ export default function Home() {
         console.log("🟢 Auth useEffect 진입");
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ hd: "kijun.hs.kr" });
-  
-    (async () => {
-      try {
-        // 1) 리디렉트 복귀 직후 한 번 결과 처리
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          console.log("✅ Redirect 성공, 유저:", result.user.email);
-          return; // 여기서 끝내면 무한 리디렉트 방지
-        }
-      } catch (e) {
-        console.warn("getRedirectResult 에러:", e);
-      }
-  
-      // 2) 현재 인증 상태 보고, 로그인 안 됐으면 리디렉트 시작
-      onAuthStateChanged(auth, (user) => {
-        if (!user) {
-          console.log("👀 로그인 안 됐음, 리디렉트 호출");
-          signInWithRedirect(auth, provider);
-        } else {
-          console.log("👋 이미 로그인된 유저:", user.email);
-        }
-      });
-    })();
-  }, []);  
+      
+        // ① 리디렉트 복귀 후 한 번만 실행
+        getRedirectResult(auth)
+          .then((result) => {
+            console.log("🔍 getRedirectResult:", result);
+            if (result?.user) {
+              // 여기서 로그인 처리 끝!
+              console.log("✅ Redirect 성공, 유저:", result.user.email);
+              return;
+            }
+            // ② 아직 유저가 없으면 리디렉트
+            console.log("👀 로그인 안 됐음, 리디렉트 시작");
+            signInWithRedirect(auth, provider);
+          })
+          .catch((err) => {
+            console.error("⚠️ getRedirectResult 에러:", err);
+            // 에러 났어도 리디렉트 시도
+            signInWithRedirect(auth, provider);
+          });
+      }, []);
+      
 
   if (initializing) return <p>로딩 중…</p>;
 
