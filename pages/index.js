@@ -9,13 +9,14 @@ import {
 } from "firebase/auth";
 
 export default function Home() {
-  const [initializing, setInitializing] = useState(true);
-  const [user, setUser] = useState(null);
+    console.log("Home component render")
+    const [initializing, setInitializing] = useState(true);
+    const [user, setUser] = useState(null);
 
-  useEffect(() => {
-    console.log("🟢 Auth useEffect 진입");
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ hd: "kijun.hs.kr" });
+    useEffect(() => {
+        console.log("🟢 Auth useEffect 진입");
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ hd: "kijun.hs.kr" });
   
     (async () => {
       try {
