@@ -8,7 +8,7 @@ import {
 } from "firebase/auth";
 
 export default function Home() {
-    console.log("Home component render")
+    const [initializing, setInitializing] = useState(true);
 
     useEffect(() => {
         const provider = new GoogleAuthProvider();
@@ -32,7 +32,7 @@ export default function Home() {
         });
     }, []);
         
-
+  // ← Use it here to avoid referencing an undefined variable
   if (initializing) return <p>로딩 중…</p>;
 
   // Not signed in yet? Kick off the redirect
